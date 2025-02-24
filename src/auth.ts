@@ -13,6 +13,7 @@ export const {
     async session({ token, session }) {
       if (token.sub && session.user && token.username) {
         session.user.id = token.sub;
+        session.user.image = token.picture;
         session.user.username = token.username as string;
         session.user.paymentInfoId = token.paymentInfoId as string;
       }
@@ -26,6 +27,7 @@ export const {
         if (!user) return token;
 
         token.sub = String(user._id);
+        token.picture = user.imageUrl;
         token.username = user.username;
         token.paymentInfoId = user.paymentInfoId;
 

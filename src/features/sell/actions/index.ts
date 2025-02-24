@@ -1,8 +1,9 @@
 "use server";
 
 import { auth } from "@/auth";
+import { accountTypes } from "@/config";
 import connectDB from "@/mongoose/db";
-import Accounts from "@/mongoose/models/account";
+import Accounts, { Account } from "@/mongoose/models/account";
 import { accountSchema } from "@/schemas";
 import { z } from "zod";
 
@@ -24,21 +25,55 @@ export const update_account = async (
 
     await connectDB();
     if (accountId) {
-      await Accounts.findByIdAndUpdate(accountId, { ...values });
-      return { success: "Account updated!" };
+      const data = await Accounts.findByIdAndUpdate(
+        accountId,
+        {
+          ...values,
+          type: values.type as accountTypes,
+          level: values.level || undefined,
+          pid: values.pid || undefined,
+          followers: values.followers || undefined,
+          link: values.link || undefined,
+          images: values.imageUrls,
+        },
+        { new: true }
+      ).exec();
+      return {
+        success: "Account updated!",
+        data: JSON.parse(JSON.stringify(data)) as Account,
+      };
     } else {
-      await Accounts.create({
-        userId: session.user.id,
+      const data = await Accounts.create({
         ...values,
-        // chagen into images
-        images: [
-          "/images/default-account-image.png",
-          "/images/default-account-image.png",
-        ],
+        userId: session.user.id,
+        type: values.type as accountTypes,
+        level: values.level || undefined,
+        pid: values.pid || undefined,
+        followers: values.followers || undefined,
+        link: values.link || undefined,
+        images: values.imageUrls,
       });
 
-      return { success: "Acccount created!" };
+      return {
+        success: "Acccount created!",
+        data: JSON.parse(JSON.stringify(data)) as Account,
+      };
     }
+  } catch {
+    return { error: "Something went wrong, Try again" };
+  }
+};
+
+export const delete_account = async (accountId: string) => {
+  try {
+    const session = await auth();
+    if (!session) {
+      return { error: "Unauthorized", success: undefined };
+    }
+
+    await connectDB();
+    await Accounts.findByIdAndDelete(accountId);
+    return { success: "Account deleted!" };
   } catch {
     return { error: "Something went wrong, Try again" };
   }

@@ -20,6 +20,7 @@ import { z } from "zod";
 import CardWrapper from "../components/CardWrapper";
 import FormError from "../../../components/ui/FormError";
 import FormSuccess from "../../../components/ui/FormSuccess";
+import Link from "next/link";
 
 const SigninForm = () => {
   const [isPending, startTransition] = useTransition();
@@ -135,6 +136,20 @@ const SigninForm = () => {
           </div>
           <FormError message={error} />
           <FormSuccess message={success} />
+          <div className="text-sm opacity-70 leading-6">
+            <span>By signing in you will be agreeing to the </span>
+            <Link target="_blank" href={"/terms"} className="underline">
+              Terms of services
+            </Link>{" "}
+            <span>and </span>
+            <Link
+              target="_blank"
+              href={"/privacy-policy"}
+              className="underline"
+            >
+              Privacy policys
+            </Link>
+          </div>
           <Button
             type="submit"
             disabled={isPending || resendIn > 0}

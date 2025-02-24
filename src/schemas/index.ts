@@ -20,11 +20,25 @@ export const PaymentInfoschema = z.object({
 });
 
 export const accountSchema = z.object({
-  // add image later
+  imageUrls: z.array(z.string()),
   type: z.enum(accountTypeLists as [string, ...string[]]),
   title: z.string(),
   description: z.string(),
   level: z.string().optional(),
+  pid: z.string().optional(),
+  followers: z.string().optional(),
   price: z.string(),
   link: z.string().optional(),
 });
+
+export const messageValidator = z.object({
+  id: z.string(),
+  senderId: z.string(),
+  type: z.enum(["image", "text"]),
+  text: z.string(),
+  timestamp: z.number(),
+});
+
+export const messageArrayValidator = z.array(messageValidator);
+
+export type Message = z.infer<typeof messageValidator>;

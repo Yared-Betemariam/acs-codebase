@@ -8,6 +8,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "../ui/button";
+import OrdersIcon from "./OrdersIcon";
+import MobileNav from "./MobileNav";
 
 const Header = () => {
   const pathname = usePathname();
@@ -15,7 +17,7 @@ const Header = () => {
 
   return (
     <header className="h-20 wrapper fixed z-50 top-0 inset-x-0 pt-4">
-      <div className="h-full border backdrop-blur-md rounded-lg border-zinc-100/20 flex items-center gap-10 px-4">
+      <div className="h-full border backdrop-blur-xl rounded-lg border-border/20 flex items-center gap-6 px-4">
         <Link href={"/"} className="w-fit">
           <Image
             src={"/logo.png"}
@@ -25,7 +27,7 @@ const Header = () => {
             className="w-6"
           />
         </Link>
-        <nav className="flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-8 text-base">
           {navLinks.map((item) => (
             <Link
               key={item.value}
@@ -36,7 +38,9 @@ const Header = () => {
             </Link>
           ))}
         </nav>
+        <MobileNav />
         <div className="flex items-center gap-3 ml-auto">
+          <OrdersIcon />
           <span className="border-l h-8 border-zinc-100/15" />
           {!user && (
             <Link href={"/auth/signin"}>

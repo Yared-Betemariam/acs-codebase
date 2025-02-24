@@ -1,7 +1,6 @@
 "use client";
 
 /* eslint-disable react/no-unescaped-entities */
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   CardContent,
@@ -28,9 +27,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { paymentMethods, paymentMethodTypes } from "@/config";
 import { useCurrentUser } from "@/features/auth/hooks";
 import React, { useEffect, useState, useTransition } from "react";
-import { GoUpload } from "react-icons/go";
 import { update_paymentinfo, update_user } from "../actions";
 import { usePaymentInfoStore } from "../store";
+import PictureUpload from "./PictureUpload";
+import { useSessionUpdate } from "../hooks";
 
 export function SettingTabs() {
   const { user } = useCurrentUser();
@@ -38,6 +38,7 @@ export function SettingTabs() {
   const [success, setSuccess] = useState<undefined | string>();
   const [error, setError] = useState<undefined | string>();
   const [isPending, startTransition] = useTransition();
+  const { updateUser } = useSessionUpdate();
 
   // payments
   const [selectedPayment, setSelectedPayment] =
@@ -83,13 +84,19 @@ export function SettingTabs() {
     setError(undefined);
     setSuccess(undefined);
 
-    if (username === user.username) {
-      setError("Username is the same as before!");
+    if (username === "") {
+      setError("Username can't be empty!");
       return;
     }
 
-    if (username === "") {
-      setError("Username can't be empty!");
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(username)) {
+      setError("Username contains invalid characters!");
+      return;
+    }
+
+    if (username === user.username) {
+      setError("Username is the same as before!");
       return;
     }
 
@@ -98,6 +105,9 @@ export function SettingTabs() {
         .then((data) => {
           setError(data?.error);
           setSuccess(data.success);
+          if (data.success) {
+            updateUser({ username });
+          }
         })
         .catch(() => setError("Something went wrong!"));
     });
@@ -132,6 +142,8 @@ export function SettingTabs() {
         .then((data) => {
           setError(data?.error);
           setSuccess(data.success);
+
+          // update sessions
         })
         .catch(() => setError("Something went wrong!"));
     });
@@ -139,18 +151,15 @@ export function SettingTabs() {
 
   return (
     <Tabs defaultValue="profile">
-      <TabsList className="h-10 grid w-full grid-cols-2 bg-transparent border border-zinc-100/20">
-        <TabsTrigger value="profile" className="h-full">
-          Profile
-        </TabsTrigger>
+      <TabsList className="h-10 grid w-full max-w-64 grid-cols-2">
+        <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger
           onClick={() =>
-            !paymentInfo &&
+            paymentInfo === undefined &&
             paymentStatus !== "success" &&
             loadPaymentInfo(user.paymentInfoId || "")
           }
           value="payments"
-          className="h-full"
         >
           Payments
         </TabsTrigger>
@@ -163,24 +172,10 @@ export function SettingTabs() {
           description="Change your profile settings of you account."
           buttonLabel="Save Changes"
         >
-          <div className="border border-border/25 rounded-full p-2  gap-6 flex items-center">
-            <Avatar className="size-20">
-              <AvatarFallback className="text-5xl bg-primary font-light uppercase">
-                {user.username && user.username[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-2 flex-col flex">
-              <Label className="opacity-25">Profile picture</Label>
-              <Button
-                variant={"outline"}
-                size="sm"
-                className="bg-transparent border-border/25"
-              >
-                <GoUpload className="inline size-4" />
-                Upload image
-              </Button>
-            </div>
-          </div>
+          {!user.paymentInfoId && (
+            <FormWarning message="You haven't set up a payment method yet!" />
+          )}
+          <PictureUpload user={user} />
           <div className="space-y-1">
             <Label htmlFor="username">Username</Label>
             <div className="flex">
@@ -200,11 +195,9 @@ export function SettingTabs() {
             <Label htmlFor="email">Email</Label>
             <Input disabled id="email" value={user.email!} />
           </div>
-          {!user.paymentInfoId && (
-            <FormWarning message="You haven't set up a payment method yet!" />
-          )}
-          <FormError message={error} />
-          <FormSuccess message={success} />
+
+          <FormError message={error} skeleton />
+          <FormSuccess message={success} skeleton />
         </TabWrapper>
       </TabsContent>
       <TabsContent value="payments">
@@ -220,7 +213,7 @@ export function SettingTabs() {
           title="Payments"
           description="Update your payment method."
         >
-          <FormWarning message="Make sure to put the right information here!" />
+          <FormWarning message="Make sure to put the right information here! (All your payments will be done with this information)" />
           <div className="space-y-2">
             <Label htmlFor="payment-method">Payment Method</Label>
             <Select
@@ -278,8 +271,8 @@ export function SettingTabs() {
               onChange={(e) => setPhoneNumber(e.target.value)}
             />
           </div>
-          <FormError message={error} />
-          <FormSuccess message={success} />
+          <FormError message={error} skeleton />
+          <FormSuccess message={success} skeleton />
         </TabWrapper>
       </TabsContent>
     </Tabs>

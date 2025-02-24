@@ -1,12 +1,14 @@
-import { auth } from "@/auth"; // Use the new auth function
-import { NextResponse } from "next/server";
+import connectDB from "@/mongoose/db";
+import Accounts, { Account } from "@/mongoose/models/account";
 
 export async function GET() {
-  const session = await auth();
+  try {
+    await connectDB();
+    const userAccounts = await Accounts.find().lean<Account[]>().exec();
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return Response.json(userAccounts, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching user payments:", error);
+    return Response.json(null, { status: 500 });
   }
-
-  return NextResponse.json({ message: "Protected data", user: session.user });
 }

@@ -9,12 +9,12 @@ const FormSuccess = ({ message, skeleton }: FormSuccessProps) => {
   if (!message) return;
   return skeleton ? (
     <div className="flex items-center gap-3 brightness-150 text-emerald-700/80 text-sm">
-      <FaCheckCircle />
+      <FaCheckCircle className="min-w-4" />
       <span>{message}</span>
     </div>
   ) : (
     <div className="flex items-center space-x-3 bg-emerald-500/20 brightness-150 text-emerald-700/80 text-sm rounded-md shadow-sm py-2 px-4">
-      <FaCheckCircle />
+      <FaCheckCircle className="min-w-4" />
       <span>{message}</span>
     </div>
   );

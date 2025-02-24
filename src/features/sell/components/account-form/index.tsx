@@ -6,22 +6,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { ImageUploadDropzone } from "../account-form/image-upload-dropzone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
+import ImageUploads, { ImageSlot } from "./image-upload";
 
+import { Button } from "@/components/ui/button";
+import FormError from "@/components/ui/FormError";
+import FormSuccess from "@/components/ui/FormSuccess";
 import {
   accountTypes,
   accountTypesNamed,
   gameAccountTypesLists,
   socialsAccountTypesLists,
 } from "@/config";
-import { Button } from "@/components/ui/button";
-import FormError from "@/components/ui/FormError";
-import FormSuccess from "@/components/ui/FormSuccess";
-import { update_account } from "../../actions";
 import { Account } from "@/mongoose/models/account";
+import axios from "axios";
+import { update_account } from "../../actions";
 import { useUserAccountsStore } from "../../store";
 
 interface Props {
@@ -32,20 +33,88 @@ const AccountForm = ({ account }: Props) => {
   const formType = useMemo(() => (account ? "edit" : "create"), [account]);
   const [success, setSuccess] = useState<undefined | string>();
   const [error, setError] = useState<undefined | string>();
-  const [isPending, startTransition] = useTransition();
+  const [loading, setLoading] = useState(false);
   const [done, setDone] = useState<boolean>(false);
+  const { accounts, setAccounts } = useUserAccountsStore.getState();
 
-  const handleUpload = (files: File[]) => {
-    console.log("Uploaded files:", files);
+  const [title, setTitle] = useState<string>(account?.title || "");
+  const [description, setDescription] = useState<string>(
+    account?.description || ""
+  );
+  const [level, setLevel] = useState<string>(
+    account?.level ? String(account.level) : ""
+  );
+  const [pid, setPid] = useState<string>(
+    account?.pid ? String(account.pid) : ""
+  );
+  const [price, setPrice] = useState<string>(
+    account?.price ? String(account.price) : ""
+  );
+  const [followers, setFollowers] = useState<string>(
+    account?.followers ? String(account.followers) : ""
+  );
+  const [link, setLink] = useState<string>(account?.link || "");
+  const [accountType, setAccountType] = useState<accountTypes>(
+    account?.type || "tiktok"
+  );
+
+  // images
+  const [images, setImages] = useState<ImageSlot[]>([
+    {
+      id: "main",
+      file: null,
+      preview: account?.images[0] || "",
+      label: "Main Image",
+    },
+    {
+      id: "optional-1",
+      file: null,
+      preview: account?.images[1] || "",
+      label: "Optional",
+    },
+    {
+      id: "optional-2",
+      file: null,
+      preview: account?.images[2] || "",
+      label: "Optional",
+    },
+  ]);
+
+  const handleImagesUpload = async () => {
+    const toUploadImages = images.filter(
+      (slot) => slot.file !== null || slot.preview !== ""
+    );
+    const imageUrls: string[] = [];
+
+    if (toUploadImages.length <= 0) {
+      return { error: "You have to upload atleast on image!" };
+    }
+
+    for (const slot of toUploadImages) {
+      if (slot.file !== null) {
+        console.log(slot.id, "new file");
+        const file = slot.file;
+
+        const { data } = await axios.get(
+          `/api/upload/images?filename=${file.name}`
+        );
+
+        const uploadUrl = data.uploadUrl;
+        const imageUrl = data.imageUrl;
+
+        await axios.put(uploadUrl, file, {
+          headers: { "Content-Type": file.type },
+        });
+
+        imageUrls.push(imageUrl);
+      } else {
+        console.log(slot.id, "just url");
+        imageUrls.push(slot.preview);
+      }
+    }
+
+    return { imageUrls };
   };
-
-  // values
-  const [title, setTitle] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
-  const [level, setLevel] = useState<string>("");
-  const [price, setPrice] = useState<string>("");
-  const [link, setLink] = useState<string>("");
-  const [accountType, setAccountType] = useState<accountTypes>("tiktok");
 
   const handleSubmit = () => {
     setError(undefined);
@@ -69,29 +138,68 @@ const AccountForm = ({ account }: Props) => {
       }
     }
 
-    startTransition(() => {
-      update_account(
-        {
-          type: accountType,
-          title,
-          description,
-          price,
-          level,
-          link,
-        },
-        account ? String(account?._id) : undefined
-      )
-        .then((data) => {
+    const isValidUrl = (urlString: string) => {
+      try {
+        new URL(urlString);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    if (socialsAccountTypesLists.includes(accountType) && !isValidUrl(link)) {
+      setError("Please provide a valid link!");
+      return;
+    }
+
+    setLoading(true);
+    handleImagesUpload()
+      .then((uploadRes) => {
+        if (uploadRes.error) {
+          setError(uploadRes.error);
+        } else {
+          const imageUrls = uploadRes.imageUrls!;
+          return update_account(
+            {
+              type: accountType,
+              title,
+              description,
+              price,
+              level,
+              link,
+              imageUrls,
+              followers,
+              pid,
+            },
+            account ? String(account?._id) : undefined
+          );
+        }
+      })
+      .then((data) => {
+        if (data) {
           setError(data?.error);
           setSuccess(data.success);
 
-          if (data.success) {
+          if (data.success && data.data) {
+            const accountData = data.data!;
             setDone(true);
-            useUserAccountsStore.getState().loadAccounts();
+            // make it just update the ui
+            if (formType === "edit" && accounts) {
+              setAccounts(
+                accounts.map((accountItem) =>
+                  accountItem._id === accountData._id
+                    ? accountData
+                    : accountItem
+                )
+              );
+            } else {
+              setAccounts([...(accounts ? accounts : []), accountData]);
+            }
           }
-        })
-        .catch(() => setError("Something went wrong!"));
-    });
+        }
+      })
+      .catch(() => setError("Something went wrong, Try again!"))
+      .finally(() => setLoading(false));
   };
 
   return (
@@ -100,15 +208,16 @@ const AccountForm = ({ account }: Props) => {
         e.preventDefault();
         handleSubmit();
       }}
-      className="flex p-6 flex-1 gap-6"
+      className="flex flex-col overflow-y-scroll md:flex-row max-h-[75vh] p-6 flex-1 gap-8 items-center justify-evenly"
     >
-      <ImageUploadDropzone onUpload={handleUpload} />
-      <div className="flex flex-col min-w-[60%] gap-2">
+      <ImageUploads images={images} setImages={setImages} />
+      <div className="flex flex-col lg:min-w-[22rem] gap-2">
         <div className="flex flex-col">
           <label htmlFor="accountType" className="font-light text-sm">
             Account Type
           </label>
           <Select
+            disabled={account?.type ? true : false}
             value={accountType}
             onValueChange={(e) => setAccountType(e as accountTypes)}
           >
@@ -188,6 +297,21 @@ const AccountForm = ({ account }: Props) => {
             />
           </div>
         )}
+        {gameAccountTypesLists.includes(accountType) && (
+          <div className="flex flex-col">
+            <label htmlFor="pid" className="font-light text-sm">
+              Pid
+            </label>
+            <Input
+              id="pid"
+              value={pid}
+              type="number"
+              required
+              onChange={(e) => setPid(e.target.value)}
+              placeholder="63298191381"
+            />
+          </div>
+        )}
 
         {socialsAccountTypesLists.includes(accountType) && (
           <div className="flex flex-col">
@@ -203,9 +327,28 @@ const AccountForm = ({ account }: Props) => {
             />
           </div>
         )}
+
+        {socialsAccountTypesLists.includes(accountType) && (
+          <div className="flex flex-col">
+            <label htmlFor="link" className="font-light text-sm">
+              Followers
+            </label>
+            <Input
+              id="level"
+              value={followers}
+              type="number"
+              required
+              onChange={(e) => setFollowers(e.target.value)}
+              placeholder="3000"
+            />
+          </div>
+        )}
+
         <FormError message={error} skeleton />
         <FormSuccess message={success} skeleton />
-        <Button disabled={isPending || done}>Publish</Button>
+        <Button disabled={loading || done}>
+          {formType == "create" ? "Publish" : "Save"}
+        </Button>
       </div>
     </form>
   );

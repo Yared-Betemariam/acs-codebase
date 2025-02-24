@@ -8,7 +8,9 @@ export interface Account extends Document {
   images: string[];
   price: number;
   link?: string;
+  pid?: string;
   level?: number;
+  followers?: number;
   userId: mongoose.Schema.Types.ObjectId;
 }
 
@@ -38,7 +40,15 @@ const accountSchema = new mongoose.Schema<Account>({
     type: String,
     required: false,
   },
+  pid: {
+    type: String,
+    required: false,
+  },
   level: {
+    type: Number,
+    required: false,
+  },
+  followers: {
     type: Number,
     required: false,
   },

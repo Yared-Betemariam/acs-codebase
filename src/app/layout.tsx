@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
+import Modals from "@/components/modals";
+import { Toaster } from "sonner";
 
 const font = Inter({ subsets: ["latin"] });
 
@@ -19,8 +21,10 @@ export default function RootLayout({
     <SessionProvider>
       <html lang="en">
         <body
-          className={`${font.className} antialiased flex flex-col relative bg-black text-white min-h-screen`}
+          className={`${font.className} antialiased flex flex-col relative bg-zinc-950 text-white min-h-screen`}
         >
+          <Toaster theme="dark" />
+          <Modals />
           {children}
         </body>
       </html>

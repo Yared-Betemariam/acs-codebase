@@ -4,11 +4,11 @@ export const navLinks = [
     value: "/",
   },
   {
-    name: "Buy accounts",
+    name: "Buy",
     value: "/buy",
   },
   {
-    name: "Sell accounts",
+    name: "Sell",
     value: "/sell",
   },
 ];
@@ -88,3 +88,27 @@ export const accountTypeLists = [
 
 export const gameAccountTypesLists = ["pubg", "freefire", "codm", "fortnite"];
 export const socialsAccountTypesLists = ["tiktok", "instagram"];
+
+export const sortByLists = [
+  {
+    id: "foll",
+    name: "Followers",
+  },
+  {
+    id: "date",
+    name: "Date",
+  },
+];
+
+export const paymentMethodsLabeled = [
+  {
+    name: "Telebirr",
+    number: "0918292719",
+    logo: "/payments/telebirr.png",
+  },
+  {
+    name: "CBEBirr",
+    number: "100002938181982",
+    logo: "/payments/cbe_birr.png",
+  },
+];

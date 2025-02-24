@@ -1,8 +1,8 @@
-export const publicRoutes = ["/"];
+export const publicRoutes = ["/accounts", "/users"];
+export const publicPages = ["/", "/buy", "/terms", "/privacy-policy"];
 
 export const apiAuthPrefix = "/api/auth";
 export const apiAuthUserPrefix = "/api/auth-user";
-// export const apiStripe = "/api/webhooks/stripe";
 
 export const authRoutes = [
   "/auth/sign-in",
